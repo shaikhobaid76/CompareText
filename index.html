@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>CompareText | Text Comparison Tool</title>
+  <meta name="description" content="comparetext - Professional character-level text comparison tool. Detect spaces, tabs, line breaks, case changes, and every hidden difference with 100% accuracy. Free online diff checker.">
+  <meta name="keywords" content="text comparison, diff tool, compare text, character diff, code diff, text differ, strict comparison, online diff checker">
+  <meta name="author" content="OBAIDULLAH SHAIKH">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://comparetext.vercel.app/">
+  <!-- Open Graph / Social Media -->
+  <meta property="og:title" content="comparetext - Exact Text Comparison">
+  <meta property="og:description" content="Compare text with character-level precision. Every space, tab, line break, and hidden character matters. Free and accurate.">
+  <meta property="og:url" content="https://comparetext.vercel.app/">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://comparetext.vercel.app/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="comparetext - Exact Text Comparison">
+  <meta name="twitter:description" content="Detect every single character change instantly. Strict matching with zero tolerance.">
+  <!-- diff-match-patch library -->
+  <script src="https://cdn.jsdelivr.net/npm/diff-match-patch@1.0.5/index.min.js"></script>
+  <!-- Custom Logo & Favicon -->
+  <link rel="icon" type="image/x-icon" href="images/favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/favicon.ico">
+  <link rel="apple-touch-icon" href="images/logo.png">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #f5f7fc;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', 'Roboto', monospace;
+      color: #121826;
+      scroll-behavior: smooth;
+      line-height: 1.5;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #e2e8f0;
+      border-radius: 12px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #94a3b8;
+      border-radius: 12px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #3b82f6;
+    }
+
+    /* navbar light premium - logo only, no text */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(16px);
+      background: rgba(255, 255, 255, 0.85);
+      border-bottom: 1px solid rgba(37, 99, 235, 0.15);
+      padding: 0.75rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .logo-area {
+      display: flex;
+      align-items: center;
+    }
+    .logo-img {
+      height: 48px;
+      width: auto;
+      max-width: 200px;
+      object-fit: contain;
+    }
+    /* fallback if image not found */
+    .logo-img[src=""], .logo-img:not([src]) {
+      content: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50"%3E%3Crect width="200" height="50" rx="12" fill="%232563eb"/%3E%3Ctext x="20" y="32" fill="white" font-size="20" font-weight="bold"%3Ecomparetext%3C/text%3E%3C/svg%3E');
+    }
+    .nav-badge {
+      font-size: 0.7rem;
+      background: #eef2ff;
+      padding: 4px 12px;
+      border-radius: 60px;
+      border: 1px solid #cbd5e1;
+      color: #1e40af;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* hero */
+    .hero {
+      text-align: center;
+      margin: 1.5rem 0 1.5rem 0;
+      animation: fadeSlideUp 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    }
+    .hero h1 {
+      font-size: 2.8rem;
+      font-weight: 700;
+      background: linear-gradient(130deg, #0f172a, #2563eb);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+    .hero p {
+      font-size: 1.1rem;
+      color: #475569;
+      margin-top: 10px;
+    }
+
+    /* panels light */
+    .comparison-grid {
+      display: flex;
+      gap: 24px;
+      margin: 1.5rem 0 1.5rem;
+      flex-wrap: wrap;
+    }
+    .panel {
+      flex: 1;
+      min-width: 280px;
+      background: #ffffff;
+      border-radius: 32px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 20px 35px -12px rgba(0,0,0,0.08);
+      transition: transform 0.2s, box-shadow 0.2s;
+      overflow: hidden;
+    }
+    .panel:hover {
+      box-shadow: 0 25px 40px -12px rgba(0, 0, 0, 0.12);
+      border-color: #b9d0ff;
+    }
+    .panel-header {
+      padding: 0.9rem 1.5rem;
+      background: #fafcff;
+      border-bottom: 1px solid #eef2ff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .panel-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #0f172a;
+    }
+    .panel-actions {
+      display: flex;
+      gap: 8px;
+    }
+    .icon-btn {
+      background: #f1f5f9;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 40px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #1e293b;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .icon-btn:hover {
+      background: #e2e8f0;
+      transform: translateY(-1px);
+    }
+    .stats-mini {
+      font-size: 0.65rem;
+      background: #eef2ff;
+      padding: 3px 10px;
+      border-radius: 40px;
+      font-family: monospace;
+      color: #1e40af;
+    }
+    textarea {
+      width: 100%;
+      height: 460px;
+      background: #ffffff;
+      border: none;
+      padding: 1.2rem;
+      font-family: 'Fira Code', 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #0f172a;
+      resize: none;
+      outline: none;
+      white-space: pre-wrap;
+      tab-size: 2;
+    }
+    textarea:focus {
+      background: #fefce8;
+      box-shadow: inset 0 0 0 2px #3b82f640;
+    }
+
+    /* button */
+    .action-bar {
+      display: flex;
+      justify-content: center;
+      margin: 16px 0 24px;
+    }
+    .compare-btn {
+      background: linear-gradient(95deg, #1e40af, #3b82f6);
+      border: none;
+      padding: 12px 38px;
+      border-radius: 80px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 8px 20px rgba(59,130,246,0.3);
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .compare-btn:active { transform: scale(0.97); }
+    .compare-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 28px rgba(59,130,246,0.4); }
+    .ripple {
+      position: absolute;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.6);
+      transform: scale(0);
+      animation: rippleAnim 0.5s linear;
+      pointer-events: none;
+    }
+
+    /* diff controls light */
+    .diff-controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      background: #ffffffcc;
+      backdrop-filter: blur(8px);
+      padding: 10px 18px;
+      border-radius: 60px;
+      margin: 16px 0;
+      border: 1px solid #e2edff;
+    }
+    .mode-switch { display: flex; gap: 8px; }
+    .mode-btn {
+      background: transparent;
+      border: 1px solid #cbd5e1;
+      padding: 6px 18px;
+      border-radius: 40px;
+      color: #1e293b;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.85rem;
+    }
+    .mode-btn.active {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: white;
+      box-shadow: 0 2px 8px #3b82f680;
+    }
+    .invisible-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      color: #0f172a;
+    }
+    .change-nav { display: flex; gap: 8px; }
+    .nav-change {
+      background: #eef2ff;
+      border-radius: 30px;
+      padding: 5px 14px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: 0.2s;
+      font-weight: 500;
+    }
+
+    .diff-viewer {
+      background: #ffffff;
+      border-radius: 28px;
+      padding: 1rem;
+      border: 1px solid #e2e8f0;
+      margin: 12px 0;
+      max-height: 520px;
+      overflow-y: auto;
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .diff-line {
+      white-space: pre-wrap;
+      word-break: break-word;
+      padding: 2px 6px;
+      border-radius: 8px;
+    }
+    .diff-added { background-color: #dcfce7cc; border-left: 3px solid #10b981; }
+    .diff-removed { background-color: #fee2e2cc; border-left: 3px solid #ef4444; }
+    .diff-modified { background-color: #fef9c3cc; border-left: 3px solid #facc15; }
+    
+    /* 💩 only - no extra span styling needed, but keep for tab/newline */
+    .invis-tab, .invis-newline {
+      font-size: 0.85em;
+      display: inline-block;
+      background: #e0f2fe;
+      border-radius: 6px;
+      padding: 0 4px;
+      margin: 0 1px;
+      font-weight: 500;
+    }
+
+    /* STATS PANEL */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+      margin: 28px 0;
+    }
+    .stat-card {
+      background: #ffffff;
+      border-radius: 24px;
+      padding: 12px 6px;
+      text-align: center;
+      border: 1px solid #e2e8f0;
+      transition: all 0.2s;
+    }
+    .stat-number {
+      font-size: 1.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #0f172a, #2563eb);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      line-height: 1.2;
+    }
+    .stat-label {
+      font-size: 0.7rem;
+      color: #475569;
+      margin-top: 4px;
+      font-weight: 500;
+    }
+    .similarity-row {
+      background: #f8fafc;
+      border-radius: 48px;
+      padding: 10px 22px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      border: 1px solid #e2e8f0;
+    }
+    .similarity-text {
+      font-weight: 800;
+      font-size: 1.3rem;
+      background: linear-gradient(120deg, #1e40af, #7c3aed);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+    .progress-container {
+      flex: 2;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .progress-fill-multi {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3b82f6, #a855f7, #ec489a);
+      border-radius: 12px;
+      transition: width 0.5s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    }
+
+    .change-sidebar {
+      background: #ffffff;
+      border-radius: 28px;
+      padding: 0.8rem;
+      margin-top: 16px;
+      border: 1px solid #eef2ff;
+    }
+    .change-list {
+      max-height: 180px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .change-item {
+      background: #f8fafc;
+      border-radius: 40px;
+      padding: 4px 12px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: 0.1s;
+      border: 1px solid #e2e8f0;
+    }
+    .toast {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      background: #1e293b;
+      backdrop-filter: blur(12px);
+      padding: 10px 20px;
+      border-radius: 80px;
+      color: white;
+      z-index: 200;
+      font-weight: 500;
+      font-size: 0.85rem;
+      border-left: 4px solid #3b82f6;
+      animation: fadeInOut 2.5s forwards;
+    }
+
+    /* ULTRA THIN FOOTER */
+    footer {
+      text-align: center;
+      padding: 0.6rem;
+      font-size: 0.7rem;
+      color: #64748b;
+      border-top: 1px solid #e2e8f0;
+      margin-top: 32px;
+      background: transparent;
+    }
+    footer a {
+      color: #2563eb;
+      text-decoration: none;
+    }
+
+    @keyframes rippleAnim { to { transform: scale(4); opacity: 0; } }
+    @keyframes fadeSlideUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateX(30px);}
+      15% { opacity: 1; transform: translateX(0);}
+      85% { opacity: 1; }
+      100% { opacity: 0; visibility: hidden; }
+    }
+    @media (max-width: 1000px) {
+      .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .comparison-grid { flex-direction: column; }
+      .hero h1 { font-size: 2rem; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .navbar { padding: 0.6rem 1rem; }
+      .logo-img { height: 38px; }
+    }
+  </style>
+  <!-- JSON-LD structured data for SEO -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "comparetext",
+    "url": "https://comparetext.vercel.app/",
+    "description": "Professional character-level text comparison tool. Detect spaces, tabs, line breaks, case changes, and hidden characters with 100% accuracy.",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "author": {
+      "@type": "Person",
+      "name": "OBAIDULLAH SHAIKH",
+      "url": "https://obaidshaikh.vercel.app/"
+    }
+  }
+  </script>
+</head>
+<body>
+
+<div class="navbar">
+  <div class="logo-area">
+    <img class="logo-img" src="images/logo.png" alt="comparetext logo" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 200 50\'%3E%3Crect width=\'200\' height=\'50\' rx=\'12\' fill=\'%232563eb\'/%3E%3Ctext x=\'20\' y=\'32\' fill=\'white\' font-size=\'20\' font-weight=\'bold\'%3Ecomparetext%3C/text%3E%3C/svg%3E';">
+  </div>
+  <div class="nav-badge">Detect Every Difference</div>
+</div>
+
+<div class="container">
+  <div class="hero">
+    <h1>Compare Text · Exact Match</h1>
+    <p>Detect every single change: spaces, tabs, line breaks, case, and hidden characters</p>
+  </div>
+
+  <div class="comparison-grid">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">📄 OLD TEXT</span>
+        <div class="panel-actions">
+          <button class="icon-btn copy-old-btn" id="copyOldBtn">📋 Copy</button>
+          <button class="icon-btn paste-old-btn" id="pasteOldBtn">📎 Paste</button>
+          <span class="stats-mini" id="oldStats">0 words, 0 chars, 0 lines</span>
+        </div>
+      </div>
+      <textarea id="oldText" placeholder="Paste original content...&#10;Even single space matters."></textarea>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">📝 NEW TEXT</span>
+        <div class="panel-actions">
+          <button class="icon-btn copy-new-btn" id="copyNewBtn">📋 Copy</button>
+          <button class="icon-btn paste-new-btn" id="pasteNewBtn">📎 Paste</button>
+          <span class="stats-mini" id="newStats">0 words, 0 chars, 0 lines</span>
+        </div>
+      </div>
+      <textarea id="newText" placeholder="Paste revised version...&#10;All differences will be caught."></textarea>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="compare-btn" id="compareBtn">⟳ COMPARE NOW <span style="font-size:1rem;">⌘⏎</span></button>
+  </div>
+
+  <div class="diff-controls">
+    <div class="mode-switch">
+      <button class="mode-btn active" data-mode="side">Side‑by‑Side</button>
+      <button class="mode-btn" data-mode="inline">Inline View</button>
+    </div>
+    <label class="invisible-toggle">
+      <input type="checkbox" id="showInvisibles"> Show invisible (💩 ⇥ ↵)
+    </label>
+    <div class="change-nav">
+      <div class="nav-change" id="prevChange">← Prev change</div>
+      <div class="nav-change" id="nextChange">Next change →</div>
+    </div>
+  </div>
+
+  <div id="diffViewerContainer" class="diff-viewer">
+    <div style="text-align:center;color:#64748b;">✨ Click "COMPARE NOW" to see strict differences</div>
+  </div>
+
+  <div id="similarityWrapper"></div>
+  <div id="statsGrid" class="stats-grid"></div>
+
+  <div class="change-sidebar" id="changeSidebar">
+    <div style="font-weight:600; margin-bottom:10px; font-size:0.85rem;">📌 Jump to changes</div>
+    <div id="changeListContainer" class="change-list">No changes yet</div>
+  </div>
+
+  <footer>
+    Developed by <strong><a href="https://obaidshaikh.vercel.app/" target="_blank" rel="noopener">OBAIDULLAH SHAIKH</a></strong>
+  </footer>
+</div>
+
+<script>
+  const dmp = new diff_match_patch();
+  let currentDiff = null;
+  let currentChangesPositions = [];
+  let currentMode = "side";
+  let showInvisiblesFlag = false;
+
+  const oldTextarea = document.getElementById('oldText');
+  const newTextarea = document.getElementById('newText');
+  const compareBtn = document.getElementById('compareBtn');
+  const diffContainer = document.getElementById('diffViewerContainer');
+  const prevBtn = document.getElementById('prevChange');
+  const nextBtn = document.getElementById('nextChange');
+  const showInvisiblesCheck = document.getElementById('showInvisibles');
+
+  function updateStats() {
+    const oldVal = oldTextarea.value;
+    const newVal = newTextarea.value;
+    document.getElementById('oldStats').innerHTML = `${oldVal.split(/\s+/).filter(w=>w.length).length} words, ${oldVal.length} chars, ${oldVal.split(/\n/).length} lines`;
+    document.getElementById('newStats').innerHTML = `${newVal.split(/\s+/).filter(w=>w.length).length} words, ${newVal.length} chars, ${newVal.split(/\n/).length} lines`;
+  }
+  oldTextarea.addEventListener('input', updateStats);
+  newTextarea.addEventListener('input', updateStats);
+  updateStats();
+
+  // copy/paste
+  document.getElementById('copyOldBtn').addEventListener('click', async () => {
+    await navigator.clipboard.writeText(oldTextarea.value);
+    showToast("Copied OLD text");
+  });
+  document.getElementById('copyNewBtn').addEventListener('click', async () => {
+    await navigator.clipboard.writeText(newTextarea.value);
+    showToast("Copied NEW text");
+  });
+  document.getElementById('pasteOldBtn').addEventListener('click', async () => {
+    const text = await navigator.clipboard.readText();
+    oldTextarea.value = text;
+    updateStats();
+    showToast("Pasted into OLD");
+  });
+  document.getElementById('pasteNewBtn').addEventListener('click', async () => {
+    const text = await navigator.clipboard.readText();
+    newTextarea.value = text;
+    updateStats();
+    showToast("Pasted into NEW");
+  });
+
+  // 💩 ONLY for space - no extra span wrapper
+  function renderInvisibleEmoji(str) {
+    if (!showInvisiblesFlag) return str;
+    // Replace space with 💩 directly
+    let result = str.replace(/ /g, '💩');
+    // tab and newline still have spans for styling
+    result = result.replace(/\t/g, '<span class="invis-tab">⇥</span>');
+    result = result.replace(/\n/g, '<span class="invis-newline">↵</span>\n');
+    return result;
+  }
+
+  function similarityPercentage(oldStr, newStr) {
+    const d = dmp.diff_main(oldStr, newStr);
+    let commonLen = 0;
+    for (let [op, text] of d) if (op === 0) commonLen += text.length;
+    const maxLen = Math.max(oldStr.length, newStr.length);
+    if (maxLen === 0) return 100.0;
+    return (commonLen / maxLen) * 100;
+  }
+
+  function performComparison() {
+    const oldStr = oldTextarea.value;
+    const newStr = newTextarea.value;
+    if (oldStr.length === 0 && newStr.length === 0) {
+      showToast("Insert text in at least one field.");
+      return false;
+    }
+    const diffs = dmp.diff_main(oldStr, newStr);
+    dmp.diff_cleanupSemantic(diffs);
+    currentDiff = diffs;
+    const linesOld = oldStr.split(/\r?\n/);
+    const linesNew = newStr.split(/\r?\n/);
+    const lineDiffs = [];
+    const maxLines = Math.max(linesOld.length, linesNew.length);
+    for(let i=0; i<maxLines; i++) {
+      const lOld = i<linesOld.length ? linesOld[i] : '';
+      const lNew = i<linesNew.length ? linesNew[i] : '';
+      if(lOld !== lNew) {
+        let type = 'modified';
+        if(lOld === '') type = 'added';
+        else if(lNew === '') type = 'removed';
+        else type = 'modified';
+        lineDiffs.push({lineIdx: i+1, type});
+      }
+    }
+    currentChangesPositions = lineDiffs;
+    renderDiffView(currentDiff);
+    updateStatsDashboard(oldStr, newStr);
+    renderChangeSidebar();
+    return true;
+  }
+
+  function updateStatsDashboard(oldStr, newStr) {
+    const similarity = similarityPercentage(oldStr, newStr);
+    let addedChars = 0, removedChars = 0;
+    if (currentDiff) {
+      for(let [op, text] of currentDiff) {
+        if(op === 1) addedChars += text.length;
+        else if(op === -1) removedChars += text.length;
+      }
+    }
+    const modifiedLines = currentChangesPositions.filter(c => c.type === 'modified').length;
+    const oldWordCount = oldStr.split(/\s+/).filter(w=>w).length;
+    const newWordCount = newStr.split(/\s+/).filter(w=>w).length;
+    const oldLines = oldStr.split(/\n/).length;
+    const newLines = newStr.split(/\n/).length;
+    
+    const similarityHtml = `
+      <div class="similarity-row">
+        <span class="similarity-text">🔍 ${similarity.toFixed(2)}% Match</span>
+        <div class="progress-container"><div class="progress-fill-multi" style="width: ${similarity}%;"></div></div>
+        <span style="font-weight:500;">${similarity >= 95 ? '⚡ perfect' : similarity > 70 ? '📈 good' : '⚠️ changes'}</span>
+      </div>
+    `;
+    document.getElementById('similarityWrapper').innerHTML = similarityHtml;
+    
+    const statsData = [
+      { label: "Differences", value: currentChangesPositions.length },
+      { label: "➕ Added", value: addedChars },
+      { label: "➖ Removed", value: removedChars },
+      { label: "Modified lines", value: modifiedLines },
+      { label: "Old words", value: oldWordCount },
+      { label: "New words", value: newWordCount },
+      { label: "Old chars", value: oldStr.length },
+      { label: "New chars", value: newStr.length },
+      { label: "Old lines", value: oldLines },
+      { label: "New lines", value: newLines }
+    ];
+    
+    let gridHtml = '';
+    statsData.forEach(stat => {
+      gridHtml += `
+        <div class="stat-card">
+          <div class="stat-number">${stat.value}</div>
+          <div class="stat-label">${stat.label}</div>
+        </div>
+      `;
+    });
+    document.getElementById('statsGrid').innerHTML = gridHtml;
+  }
+
+  function renderDiffView(diffs) {
+    if (!diffs) return;
+    if (currentMode === "side") renderSideBySide(diffs);
+    else renderInline(diffs);
+  }
+
+  function renderSideBySide(diffs) {
+    let leftHtml = '', rightHtml = '';
+    for (let [op, text] of diffs) {
+      let displayText = text;
+      if (showInvisiblesFlag) displayText = renderInvisibleEmoji(text);
+      if (op === -1) {
+        leftHtml += `<div class="diff-line diff-removed">${escapeHtml(displayText)}</div>`;
+        rightHtml += `<div class="diff-line" style="opacity:0.4;"> </div>`;
+      } else if (op === 1) {
+        leftHtml += `<div class="diff-line"></div>`;
+        rightHtml += `<div class="diff-line diff-added">${escapeHtml(displayText)}</div>`;
+      } else {
+        let clean = escapeHtml(displayText);
+        leftHtml += `<div class="diff-line">${clean}</div>`;
+        rightHtml += `<div class="diff-line">${clean}</div>`;
+      }
+    }
+    diffContainer.innerHTML = `<div style="display:flex; gap:20px;"><div style="flex:1; background:#f9fafc; border-radius:16px; padding:8px;"><strong>📜 OLD</strong><div>${leftHtml}</div></div><div style="flex:1; background:#f9fafc; border-radius:16px; padding:8px;"><strong>🆕 NEW</strong><div>${rightHtml}</div></div></div>`;
+  }
+
+  function renderInline(diffs) {
+    let html = '';
+    for (let [op, text] of diffs) {
+      let cls = '';
+      if (op === -1) cls = 'diff-removed';
+      else if (op === 1) cls = 'diff-added';
+      let displayText = escapeHtml(text);
+      if (showInvisiblesFlag) displayText = renderInvisibleEmoji(text);
+      if (op === -1) displayText = `[- ${displayText} -]`;
+      if (op === 1) displayText = `[+ ${displayText} +]`;
+      html += `<div class="diff-line ${cls}">${displayText}</div>`;
+    }
+    diffContainer.innerHTML = html;
+  }
+
+  function renderChangeSidebar() {
+    const container = document.getElementById('changeListContainer');
+    if (!currentChangesPositions.length) {
+      container.innerHTML = '<div style="opacity:0.6;">✨ No differences found (exact match)</div>';
+      return;
+    }
+    let items = '';
+    currentChangesPositions.forEach((ch, idx) => {
+      items += `<div class="change-item" data-idx="${idx}">Line ${ch.lineIdx} — ${ch.type}</div>`;
+    });
+    container.innerHTML = items;
+    document.querySelectorAll('.change-item').forEach(el => {
+      el.addEventListener('click', () => jumpToChange(parseInt(el.dataset.idx)));
+    });
+  }
+
+  function jumpToChange(idx) {
+    if(!currentChangesPositions[idx]) return;
+    const targetLine = currentChangesPositions[idx].lineIdx;
+    const linesInView = diffContainer.querySelectorAll('.diff-line');
+    if(linesInView.length && targetLine) {
+      let lineIndex = Math.min(targetLine-1, linesInView.length-1);
+      if(lineIndex>=0) linesInView[lineIndex]?.scrollIntoView({behavior:'smooth', block:'center'});
+      showToast(`Jumped to line ${targetLine}`);
+    }
+  }
+
+  let changeIndex = 0;
+  function nextChange() {
+    if(!currentChangesPositions.length) return showToast('No changes');
+    changeIndex = (changeIndex + 1) % currentChangesPositions.length;
+    jumpToChange(changeIndex);
+  }
+  function prevChange() {
+    if(!currentChangesPositions.length) return;
+    changeIndex = (changeIndex - 1 + currentChangesPositions.length) % currentChangesPositions.length;
+    jumpToChange(changeIndex);
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/[&<>]/g, function(m) {
+      if (m === '&') return '&amp;';
+      if (m === '<') return '&lt;';
+      if (m === '>') return '&gt;';
+      return m;
+    });
+  }
+
+  function showToast(msg) {
+    const existing = document.querySelector('.toast');
+    if(existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.innerText = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+  }
+
+  compareBtn.addEventListener('click', (e) => {
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    const rect = compareBtn.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    ripple.style.width = ripple.style.height = `${size}px`;
+    ripple.style.left = `${e.clientX - rect.left - size/2}px`;
+    ripple.style.top = `${e.clientY - rect.top - size/2}px`;
+    compareBtn.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 500);
+    performComparison();
+  });
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); performComparison(); }
+  });
+
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentMode = btn.dataset.mode;
+      if(currentDiff) renderDiffView(currentDiff);
+    });
+  });
+  showInvisiblesCheck.addEventListener('change', (e) => {
+    showInvisiblesFlag = e.target.checked;
+    if(currentDiff) renderDiffView(currentDiff);
+  });
+  prevBtn.addEventListener('click', prevChange);
+  nextBtn.addEventListener('click', nextChange);
+  updateStats();
+</script>
+</body>
+</html>
